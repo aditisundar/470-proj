@@ -68,6 +68,12 @@ class BidirectionalEncoderRNN(nn.Module):
         super(BidirectionalEncoderRNN, self).__init__()
 
         # Write your implementation here
+        self.hidden_size = hidden_size
+        self.input_size = input_size
+        # self.embedding_bw = nn.Embedding(input_size, hidden_size)
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, bidirectional=True)
+        # self.gru_bw = nn.GRU(hidden_size, hidden_size)
 
         # End of implementation
 
@@ -84,6 +90,18 @@ class BidirectionalEncoderRNN(nn.Module):
         """
 
         # Write your implementation here
+
+        # input_bw = input.index_select(0, torch.LongTensor(
+        # [i for i in range(input.size(0)-1, -1, -1)]))
+
+        embedded = self.embedding(input).view(1, 1, -1)
+        # embedded_bw = self.embedding_bw(input_bw).view(1, 1, -1)
+
+        output, hidden = self.gru(embedded, hidden)
+        # output_bw, hidden_bw = self.gru_bw(output_bw, hidden_bw)
+
+        return output, hidden
+        # return output + output_bw, hidden + hidden_bw
 
         # End of implementation
 
@@ -104,7 +122,7 @@ def define_bi_encoder(input_vocab_len, hidden_size):
     encoder = None
 
     # Write your implementation here
-
+    encoder = BidirectionalEncoderRNN(input_vocab_len, hidden_size)
     # End of implementation
 
     return encoder
@@ -122,7 +140,9 @@ def fix_bi_encoder_output_dim(encoder_output, hidden_size):
     output = None
 
     # Write your implementation here
-
+    output = (encoder_output[:, :, :hidden_size] +
+              encoder_output[:, :, hidden_size:])
+    # tanh function on w_fw + w_bw
     # End of implementation
 
     return output
@@ -140,7 +160,7 @@ def fix_bi_encoder_hidden_dim(encoder_hidden):
     output = None
 
     # Write your implementation here
-
+    output = encoder_hidden[:-1]
     # End of implementation
 
     return output
@@ -164,7 +184,7 @@ class AttnDecoderRNNDot(nn.Module):
         # Write your implementation here
 
         pass
-        
+
         # End of implementation
 
     def initHidden(self):
