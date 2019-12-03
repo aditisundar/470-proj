@@ -22,7 +22,7 @@ def define_simple_decoder(hidden_size, input_vocab_len, output_vocab_len, max_le
     decoder = None
 
     # Write your implementation here
-
+    decoder = model.DecoderRNN(hidden_size, output_vocab_len)
     # End of implementation
 
     return decoder
@@ -47,7 +47,7 @@ def run_simple_decoder(simple_decoder, decoder_input, encoder_hidden, decoder_hi
     results = None
 
     # Write your implementation here
-
+    results = simple_decoder.forward(decoder_input, decoder_hidden)
     # End of implementation
 
     return results
