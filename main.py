@@ -49,14 +49,12 @@ parser.add_argument('--dot', default=False, action='store_true',
 """
 Models for part 3
 
-To run character based model:
 To run multi-layer optimal model:       python3 main.py --multi --num-layers=<n>
 """
 parser.add_argument('--char', default=False, action='store_true',
                     help='Run the character-based model')
 parser.add_argument('--char-bleu', default=False, action='store_true',
                     help='Use a character-based BLEU metric')
-                    help='Run the character based model')
 parser.add_argument('--multi', default=False, action='store_true',
                     help='Run the Multi-layered Bidirectional Encoder with DotAttention Decoder')
 parser.add_argument('--num-layers', type=int, default=5,
