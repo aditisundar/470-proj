@@ -12,14 +12,8 @@ def define_simple_decoder(hidden_size, input_vocab_len, output_vocab_len, max_le
     """ Provides a simple decoder instance
         NOTE: Not all the function arguments are needed - you need to figure out which arguments to use
 
-    :param hidden_size:
-    :param input_vocab_len
-    :param output_vocab_len
-    :param max_length
-
     :return: a simple decoder instance
     """
-    decoder = None
 
     # Write your implementation here
     decoder = model.DecoderRNN(hidden_size, output_vocab_len)
@@ -34,17 +28,10 @@ def run_simple_decoder(simple_decoder, decoder_input, encoder_hidden, decoder_hi
     """ Runs the simple_decoder
         NOTE: Not all the function arguments are needed - you need to figure out which arguments to use
 
-    :param simple_decoder: the simple decoder object
-    :param decoder_input:
-    :param decoder_hidden:
-    :param encoder_hidden:
-    :param encoder_outputs:
-
     :return: The appropriate values
             HINT: Look at what the caller of this function in seq2seq.py expects as well as the simple decoder
                     definition in model.py
     """
-    results = None
 
     # Write your implementation here
     results = simple_decoder.forward(decoder_input, decoder_hidden)
@@ -55,72 +42,30 @@ def run_simple_decoder(simple_decoder, decoder_input, encoder_hidden, decoder_hi
 
 # PART 2.2
 class BidirectionalEncoderRNN(nn.Module):
-    """Write class definition for BidirectionalEncoderRNN
-    """
 
     def __init__(self, input_size, hidden_size):
-        """
-
-        :param input_size:
-        :param hidden_size:
-        """
-
         super(BidirectionalEncoderRNN, self).__init__()
 
         # Write your implementation here
         self.hidden_size = hidden_size
         self.input_size = input_size
-        # self.embedding_bw = nn.Embedding(input_size, hidden_size)
         self.embedding = nn.Embedding(input_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size, bidirectional=True)
-        # self.gru_bw = nn.GRU(hidden_size, hidden_size)
-
         # End of implementation
 
     def forward(self, input, hidden):
-        """
-
-        :param input:
-        :param hidden:
-
-        :return: output, hidden
-
-            Hint: Don't correct the dimensions of the return values at this stage.
-                    Function skeletons for doing this are provided later.
-        """
-
         # Write your implementation here
-
-        # input_bw = input.index_select(0, torch.LongTensor(
-        # [i for i in range(input.size(0)-1, -1, -1)]))
-
         embedded = self.embedding(input).view(1, 1, -1)
-        # embedded_bw = self.embedding_bw(input_bw).view(1, 1, -1)
-
         output, hidden = self.gru(embedded, hidden)
-        # output_bw, hidden_bw = self.gru_bw(output_bw, hidden_bw)
-
         return output, hidden
-        # return output + output_bw, hidden + hidden_bw
-
         # End of implementation
 
     def initHidden(self):
         return torch.zeros(1*2, 1, self.hidden_size, device=device)
 
-
 # PART 2.2
 # Define the encoder model here
 def define_bi_encoder(input_vocab_len, hidden_size):
-    """ Defines bidirectional encoder RNN
-
-    :param input_vocab_len:
-    :param hidden_size:
-    :return:
-    """
-
-    encoder = None
-
     # Write your implementation here
     encoder = BidirectionalEncoderRNN(input_vocab_len, hidden_size)
     # End of implementation
@@ -131,18 +76,9 @@ def define_bi_encoder(input_vocab_len, hidden_size):
 # PART 2.2
 # Correct the dimension of encoder output by adding the forward and backward representation
 def fix_bi_encoder_output_dim(encoder_output, hidden_size):
-    """
-
-    :param encoder_output:
-    :param hidden_size:
-    :return:
-    """
-    output = None
-
     # Write your implementation here
     output = (encoder_output[:, :, :hidden_size] +
               encoder_output[:, :, hidden_size:])
-    # tanh function on w_fw + w_bw
     # End of implementation
 
     return output
@@ -151,14 +87,6 @@ def fix_bi_encoder_output_dim(encoder_output, hidden_size):
 # PART 2.2
 # Correct the dimension of encoder hidden by considering only one sided layer
 def fix_bi_encoder_hidden_dim(encoder_hidden):
-    """
-
-    :param encoder_hidden:
-    :return:
-    """
-
-    output = None
-
     # Write your implementation here
     output = encoder_hidden[:-1]
     # End of implementation
@@ -168,18 +96,15 @@ def fix_bi_encoder_hidden_dim(encoder_hidden):
 
 # PART 2.2
 class AttnDecoderRNNDot(nn.Module):
-    """ Write class definition for AttnDecoderRNNDot
-        Hint: Modify AttnDecoderRNN to use dot attention
-    """
 
     def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=10):
         super(AttnDecoderRNNDot, self).__init__()
 
         # Write your implementation here
-        print("-------- Using AttnDecoderRNNDot --------")
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.dropout_p = dropout_p
+
         self.embedding = nn.Embedding(self.output_size, self.hidden_size)
         self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
@@ -214,3 +139,87 @@ class AttnDecoderRNNDot(nn.Module):
 
 
 # PART 3.1 goes below this comment
+
+# TODO: consider LSTM instead of GRU
+
+class MultiLayerBidirectionalEncoderRNN(nn.Module):
+
+    def __init__(self, input_size, hidden_size, num_layers=5):
+        super(MultiLayerBidirectionalEncoderRNN, self).__init__()
+
+        self.hidden_size = hidden_size
+        self.input_size = input_size
+        self.num_layers = num_layers
+
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, bidirectional=True, num_layers=num_layers)
+
+    def forward(self, input, hidden):
+        embedded = self.embedding(input).view(1, 1, -1)
+        output, hidden = self.gru(embedded, hidden)
+        return output, hidden
+
+    def initHidden(self):
+        # 1*2*num_layers because bidirectional multi-layered
+        return torch.zeros(1*2*self.num_layers, 1, self.hidden_size, device=device)
+
+class MultiLayerAttnDecoderRNNDot(nn.Module):
+
+    def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=10, num_layers=5):
+        super(MultiLayerAttnDecoderRNNDot, self).__init__()
+
+        # Write your implementation here
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.dropout_p = dropout_p
+        self.num_layers = num_layers
+
+        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
+        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
+        self.dropout = nn.Dropout(self.dropout_p)
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size, num_layers=num_layers)
+        self.out = nn.Linear(self.hidden_size, self.output_size)
+
+    def forward(self, input, hidden, encoder_outputs):
+
+        embedded = self.embedding(input).view(1, 1, -1)
+        embedded = self.dropout(embedded)
+
+        attn_weights = F.softmax(torch.matmul(hidden[0], torch.t(encoder_outputs)), dim=1)
+        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
+                                 encoder_outputs.unsqueeze(0))
+        output = torch.cat((embedded[0], attn_applied[0]), 1)
+        output = self.attn_combine(output).unsqueeze(0)
+
+        output = F.relu(output)
+        output, hidden = self.gru(output, hidden)
+
+        output = F.log_softmax(self.out(output[0]), dim=1)
+        return output, hidden, attn_weights
+
+    def initHidden(self):
+        return torch.zeros(1*self.num_layers, 1, self.hidden_size, device=device)
+
+# Define the encoder model here
+def define_multi_bi_encoder(input_vocab_len, hidden_size):
+    encoder = MultiLayerBidirectionalEncoderRNN(input_vocab_len, hidden_size)
+    return encoder
+
+
+# Correct the dimension of encoder output by adding the forward and backward representation
+def fix_multi_bi_encoder_output_dim(encoder_output, hidden_size):
+    output = (encoder_output[:, :, :hidden_size] +
+              encoder_output[:, :, hidden_size:])
+
+    return output
+
+# Correct the dimension of encoder hidden by considering only one sided layer
+# TODO: not sure if this is correct - why are we only considering one-sided
+def fix_multi_bi_encoder_hidden_dim(encoder_hidden):
+    # dimension of encoder_hidden is (2 * num_layers, 1, hidden_size)
+    # want dimension (num_layers, 1, hidden_size)
+    # contiguous() is used to ensure that the memory the object occupies is contiguous (PyTorch needs this condition)
+    output = encoder_hidden[::2].contiguous()
+
+    return output
+
