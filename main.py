@@ -39,6 +39,8 @@ parser.add_argument('--bidirectional', default=False, action='store_true',
                     help='Run the bidirectional encoder')
 parser.add_argument('--dot', default=False, action='store_true',
                     help='Run the Attention decoder with dot type')
+parser.add_argument('--char', default=False, action='store_true',
+                    help='Run the character based model')
 
 
 def main():
@@ -59,14 +61,23 @@ def main():
             exit()
 
         test_pairs = readFile(args.test_file)
-        outputs = model.evaluatePairs(test_pairs,  rand=False)
+        outputs = model.evaluatePairs(test_pairs,  rand=False, char=args.char)
         writeToFile(outputs, os.path.join(args.output_dir, "output.pkl"))
         reference = []
         hypothesis = []
-        for (hyp, ref) in outputs:
-            reference.append([ref.split(" ")])
-            hypothesis.append(hyp.split(" "))
 
+        for (hyp, ref) in outputs:
+            if args.char:
+                reference.append([list(ref)])
+                hypothesis.append(list(hyp))
+            else:
+                reference.append([ref.split(" ")])
+                hypothesis.append(hyp.split(" "))
+
+        print("ref:")
+        print(reference)
+        print("hyp:")
+        print(hypothesis)
         bleu_score = compute_bleu(reference, hypothesis)
         print("Bleu Score: " + str(bleu_score))
 
@@ -75,19 +86,26 @@ def main():
         print(model.evaluateAndShowAttention(
             "J'ai dit que l'anglais est facile."))
         print(model.evaluateAndShowAttention(
-            "Je fais un blocage sur l'anglais."))
-        print(model.evaluateAndShowAttention(
             "Je n'ai pas dit que l'anglais est une langue facile."))
+        print(model.evaluateAndShowAttention(
+            "Je fais un blocage sur l'anglais."))
 
     else:
         input_lang, output_lang, pairs = prepareData(args.train_file)
         print(random.choice(pairs))
 
-        model = EncoderDecoder(args.hidden_size, input_lang.n_words, output_lang.n_words, args.drop,
-                               args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot)
+        print(input_lang.n_words)
+
+        if args.char:
+            model = EncoderDecoder(args.hidden_size, input_lang.n_chars, output_lang.n_chars, args.drop,
+                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot)
+        else:
+            model = EncoderDecoder(args.hidden_size, input_lang.n_words, output_lang.n_words, args.drop,
+                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot)
+
         model.trainIters(pairs, input_lang, output_lang, args.n_iters,
-                         print_every=args.print_every, plot_every=args.plot_every)
-        model.evaluatePairs(pairs)
+                         print_every=args.print_every, plot_every=args.plot_every, char=args.char)
+        model.evaluatePairs(pairs, char=args.char)
         model.save(args.output_dir)
 
 

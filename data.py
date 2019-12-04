@@ -17,9 +17,16 @@ class Lang:
         self.index2word = {0: "SOS", 1: "EOS"}
         self.n_words = 2  # Count SOS and EOS and UNK
 
+        self.char2index = {}
+        self.char2count = {}
+        self.index2char = {0: "SOS", 1: "EOS"}
+        self.n_chars = 2  # Count SOS and EOS and UNK
+
     def addSentence(self, sentence):
         for word in sentence.split(' '):
             self.addWord(word)
+        for char in sentence:
+            self.addChar(char)
 
     def addWord(self, word):
         if word not in self.word2index:
@@ -29,6 +36,15 @@ class Lang:
             self.n_words += 1
         else:
             self.word2count[word] += 1
+
+    def addChar(self, char):
+        if char not in self.char2index:
+            self.char2index[char] = self.n_chars
+            self.char2count[char] = 1
+            self.index2char[self.n_chars] = char
+            self.n_chars += 1
+        else:
+            self.char2count[char] += 1
 
 
 def unicodeToAscii(s):

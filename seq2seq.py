@@ -51,17 +51,20 @@ class EncoderDecoder(object):
 		self.output_lang = None
 
 
-	def indexesFromSentence(self, lang, sentence):
-		return [lang.word2index[word] for word in sentence.split(' ')]
+	def indexesFromSentence(self, lang, sentence, char=False):
+		if char:
+			return [lang.char2index[char] for char in sentence]
+		else:
+			return [lang.word2index[word] for word in sentence.split(' ')]		
 
-	def tensorFromSentence(self, lang, sentence):
-		indexes = self.indexesFromSentence(lang, sentence)
+	def tensorFromSentence(self, lang, sentence, char=False):
+		indexes = self.indexesFromSentence(lang, sentence, char)
 		indexes.append(EOS_token)
 		return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
 
-	def tensorsFromPair(self, pair):
-		input_tensor = self.tensorFromSentence(self.input_lang, pair[0])
-		target_tensor = self.tensorFromSentence(self.output_lang, pair[1])
+	def tensorsFromPair(self, pair, char=False):
+		input_tensor = self.tensorFromSentence(self.input_lang, pair[0], char)
+		target_tensor = self.tensorFromSentence(self.output_lang, pair[1], char)
 		return (input_tensor, target_tensor)
 
 
@@ -134,7 +137,7 @@ class EncoderDecoder(object):
 		return loss.item() / target_length
 
 
-	def trainIters(self, pairs, input_lang, output_lang, n_iters, print_every=1000, plot_every=100):
+	def trainIters(self, pairs, input_lang, output_lang, n_iters, print_every=1000, plot_every=100, char=False):
 		start = time.time()
 		plot_losses = []
 		print_loss_total = 0  # Reset every print_every
@@ -145,7 +148,7 @@ class EncoderDecoder(object):
 		self.encoder_optimizer = optim.SGD(self.encoder.parameters(), lr=self.learning_rate)
 		self.decoder_optimizer = optim.SGD(self.decoder.parameters(), lr=self.learning_rate)
 		selected_pairs = [random.choice(pairs) for i in range(n_iters)]
-		training_pairs = [self.tensorsFromPair(pair) for pair in selected_pairs]
+		training_pairs = [self.tensorsFromPair(pair, char) for pair in selected_pairs]
 		self.criterion = nn.NLLLoss()
 
 		for iter in range(1, n_iters + 1):
@@ -170,9 +173,9 @@ class EncoderDecoder(object):
 		showPlot(plot_losses)
 
 
-	def evaluate(self, sentence):
+	def evaluate(self, sentence, char=False):
 		with torch.no_grad():
-			input_tensor = self.tensorFromSentence(self.input_lang, sentence)
+			input_tensor = self.tensorFromSentence(self.input_lang, sentence, char)
 			input_length = input_tensor.size()[0]
 			encoder_hidden = self.encoder.initHidden()
 
@@ -206,14 +209,18 @@ class EncoderDecoder(object):
 					decoder_attentions[di] = decoder_attention.data
 
 				topv, topi = decoder_output.data.topk(1)
+
 				if topi.item() == EOS_token:
 					decoded_words.append('<EOS>')
 					break
 				else:
-					decoded_words.append(self.output_lang.index2word[topi.item()])
+					if char:
+						decoded_words.append(self.output_lang.index2char[topi.item()])
+					else:
+						decoded_words.append(self.output_lang.index2word[topi.item()])
 
 				decoder_input = topi.squeeze().detach()
-
+	
 		if not self.simple:
 			return decoded_words, decoder_attentions[:di + 1]
 		else:	
@@ -264,7 +271,7 @@ class EncoderDecoder(object):
 				'dot': self.dot
 			}, f)
 
-	def evaluatePairs(self, pairs, rand=True, n=10, plot=False):
+	def evaluatePairs(self, pairs, rand=True, n=10, plot=False, char=False):
 		n = n if rand else len(pairs)
 		outputs = []
 		for i in range(n):
@@ -274,20 +281,26 @@ class EncoderDecoder(object):
 				pair = pairs[i]
 			print('>', pair[0])
 			print('=', pair[1])
-			output_words, attentions = self.evaluate(pair[0])
+			output_words, attentions = self.evaluate(pair[0], char)
 			if plot and not self.simple:
 				plt.matshow(attentions.numpy())
-			output_sentence = ' '.join(output_words[:-1])
+			if char:
+				output_sentence = ''.join(output_words[:-1])
+			else:
+				output_sentence = ' '.join(output_words[:-1])
 			outputs.append((output_sentence, pair[1]))
 			print('<', output_sentence)
 			print('')
 		return outputs
 
-	def evaluateAndShowAttention(self, input_sentence):
-		output_words, attentions = self.evaluate(normalizeString(input_sentence))
+	def evaluateAndShowAttention(self, input_sentence, char=False):
+		output_words, attentions = self.evaluate(normalizeString(input_sentence), char)
 		print('input =', input_sentence)
-		print('output =', ' '.join(output_words))
+		if char:
+			print('output =', ''.join(output_words))
+		else:
+			print('output =', ' '.join(output_words))
 		if not self.simple:
-			showAttention(normalizeString(input_sentence), output_words, attentions[:,:len(output_words)])
+			showAttention(normalizeString(input_sentence), output_words, attentions[:,:len(output_words)], char=char)
 		else:
 			print("Not an attention based model as per the parameter 'simple' !")
