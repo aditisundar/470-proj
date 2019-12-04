@@ -16,7 +16,7 @@ class EncoderDecoder(object):
 	"""EncoderDecoder"""
 	def __init__(self, hidden_size=128, input_vocab_len=10000, output_vocab_len=10000, dropout_p=0.1,
 				 teacher_forcing_ratio=0.5, max_length=10, learning_rate=0.01, simple=False,
-				 bidirectional=False, dot=False, num_layers=1):
+				 bidirectional=False, dot=False, multi=False, num_layers=1):
 		super(EncoderDecoder, self).__init__()
 		self.hidden_size = hidden_size
 		self.input_vocab_len = input_vocab_len
@@ -26,30 +26,31 @@ class EncoderDecoder(object):
 		self.learning_rate = learning_rate
 		self.simple = simple
 		self.dot = dot
-		self.multi = multi
 		self.bidirectional = bidirectional
 		self.teacher_forcing_ratio = teacher_forcing_ratio
+		self.multi = multi
+		self.num_layers = num_layers
 
-		if self.bidirectional:
-			if self.num_layers > 1:
-				self.encoder = code.MultiLayerBiDirectionalEncoder(input_vocab_len, hidden_size, num_layers=num_layers).to(device)
-			else:
+		if self.multi:
+			self.encoder = code.MultiLayerBidirectionalEncoderRNN(input_vocab_len, hidden_size, num_layers=num_layers).to(device)
+			self.decoder = code.MultiLayerAttnDecoderRNNDot(hidden_size, output_vocab_len, 
+						dropout_p=dropout_p, max_length=max_length, num_layers=num_layers).to(device)
+		else:
+			if self.bidirectional:
 				self.encoder = code.define_bi_encoder(input_vocab_len, hidden_size).to(device)
+			else:
+				self.encoder = EncoderRNN(input_vocab_len, hidden_size).to(device)
 
-		else:
-			self.encoder = EncoderRNN(input_vocab_len, hidden_size).to(device)
-
-		if self.simple:
-			self.decoder = code.define_simple_decoder(hidden_size, input_vocab_len, output_vocab_len, max_length).to(device)
-		else:
-			if self.num_layers > 1:
-				self.decoder = code.MultiLayerAttnDotDecoder(hidden_size, output_vocab_len, 
-					dropout_p=dropout_p, max_length=max_length, num_layers=num_layers)
+			if self.simple:
+				self.decoder = code.define_simple_decoder(hidden_size, input_vocab_len, 
+					output_vocab_len, max_length, num_layers=num_layers).to(device)
 			else:
 				if not self.dot:
-					self.decoder = AttnDecoderRNN(hidden_size, output_vocab_len, dropout_p=dropout_p, max_length=self.max_length).to(device)
+					self.decoder = AttnDecoderRNN(hidden_size, output_vocab_len, 
+						dropout_p=dropout_p, max_length=self.max_length).to(device)
 				else:
-					self.decoder = code.AttnDecoderRNNDot(hidden_size, output_vocab_len, dropout_p=dropout_p, max_length=max_length)
+					self.decoder = code.AttnDecoderRNNDot(hidden_size, output_vocab_len, 
+						dropout_p=dropout_p, max_length=max_length).to(device)
 
 
 		self.encoder_optimizer = None
@@ -95,6 +96,8 @@ class EncoderDecoder(object):
 			
 			if self.bidirectional:
 				encoder_output = code.fix_bi_encoder_output_dim(encoder_output, self.hidden_size)
+			if self.multi:
+				encoder_output = code.fix_multi_bi_encoder_output_dim(encoder_output, self.hidden_size)
 			
 			encoder_outputs[ei] = encoder_output[0, 0]
 		
@@ -103,6 +106,8 @@ class EncoderDecoder(object):
 		
 		if self.bidirectional:
 			decoder_hidden = code.fix_bi_encoder_hidden_dim(encoder_hidden)
+		elif self.multi:
+			decoder_hidden = code.fix_multi_bi_encoder_hidden_dim(encoder_hidden)
 		else:
 			decoder_hidden = encoder_hidden
 

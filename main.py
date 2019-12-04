@@ -9,12 +9,16 @@ import os
 
 
 parser = argparse.ArgumentParser(description='Neural Machine Translation')
+
+# train, test, and output location arguments
 parser.add_argument('--train-file', type=str, default="eng-fra.train.small.txt",
                     help='input file for training (default: eng-fra.train.small.txt)')
 parser.add_argument('--test-file', type=str, default="eng-fra.test.small.txt",
                     help='input file for evaluation (default: eng-fra.test.small.txt)')
 parser.add_argument('--output-dir', type=str, default="results/",
                     help='output directory to save the model(default: results/)')
+
+# hyperparameters
 parser.add_argument('--max-length', type=int, default=60,
                     help='Maximum sequence length (default: 60)')
 parser.add_argument('--tfr', type=float, default=0.5,
@@ -27,23 +31,33 @@ parser.add_argument('--hidden-size', type=int, default=128,
                     help='Size of hidden layer (default: 128)')
 parser.add_argument('--n-iters', type=int, default=10000,
                     help='Number of Iterations (default: 10000)')
+
 parser.add_argument('--plot-every', type=int, default=100,
                     help='Plot after (default: 100)')
 parser.add_argument('--print-every', type=int, default=1000,
                     help='Print after(default: 1000)')
 parser.add_argument('--eval', default=False, action='store_true',
                     help='Run the model on test file')
+
+# model architectures
 parser.add_argument('--simple', default=False, action='store_true',
                     help='Run the simple decoder')
 parser.add_argument('--bidirectional', default=False, action='store_true',
                     help='Run the bidirectional encoder')
 parser.add_argument('--dot', default=False, action='store_true',
                     help='Run the Attention decoder with dot type')
-# Models for part 3
+"""
+Models for part 3
+
+To run character based model:
+To run multi-layer optimal model:       python3 main.py --multi --num-layers=<n>
+"""
 parser.add_argument('--char', default=False, action='store_true',
                     help='Run the character based model')
-parser.add_argument('--num_layers', default=2, action='store_true',
-                    help='Run the multi-layer AttentionDot model')
+parser.add_argument('--multi', default=False, action='store_true',
+                    help='Run the Multi-layered Bidirectional Encoder with DotAttention Decoder')
+parser.add_argument('--num-layers', type=int, default=5,
+                    help='Number of layers in multi-layer model')
 
 
 def main():
@@ -101,10 +115,10 @@ def main():
 
         if args.char:
             model = EncoderDecoder(args.hidden_size, input_lang.n_chars, output_lang.n_chars, args.drop,
-                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot, 1)
+                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot, False, 1)
         else:
             model = EncoderDecoder(args.hidden_size, input_lang.n_words, output_lang.n_words, args.drop,
-                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot, args.num_layers)
+                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot, args.multi, args.num_layers)
 
         model.trainIters(pairs, input_lang, output_lang, args.n_iters,
                          print_every=args.print_every, plot_every=args.plot_every, char=args.char)

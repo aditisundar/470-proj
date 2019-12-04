@@ -4,20 +4,18 @@ import torch.nn.functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# all models assume batch size of 1
+
 ######################################################################
 # The Encoder
 # -----------
-
-
 class EncoderRNN(nn.Module):
     def __init__(self, input_size, hidden_size):
         super(EncoderRNN, self).__init__()
         self.hidden_size = hidden_size
 
         self.embedding = nn.Embedding(input_size, hidden_size)
-
         self.gru = nn.GRU(hidden_size, hidden_size)
-        #print(sum(p.numel() for p in self.gru.parameters()))
 
     def forward(self, input, hidden):
         embedded = self.embedding(input).view(1, 1, -1)
