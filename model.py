@@ -17,10 +17,16 @@ class EncoderRNN(nn.Module):
         self.embedding = nn.Embedding(input_size, hidden_size)
 
         self.gru = nn.GRU(hidden_size, hidden_size)
-        #print(sum(p.numel() for p in self.gru.parameters()))
+        # print(sum(p.numel() for p in self.gru.parameters()))
 
     def forward(self, input, hidden):
-        embedded = self.embedding(input).view(1, 1, -1)
+        # print(self.embedding(input))
+        try:
+            embedded = self.embedding(input).view(1, 1, -1)
+        except RuntimeError:
+            print(self.embedding)
+            print(input)
+            raise
         output = embedded
         output, hidden = self.gru(output, hidden)
         return output, hidden
