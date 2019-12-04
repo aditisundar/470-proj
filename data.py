@@ -97,5 +97,25 @@ def prepareData(file_name, lang1="eng", lang2="fra", reverse=True):
 
     print(input_lang.name, input_lang.n_words)
     print(output_lang.name, output_lang.n_words)
+    
+    print("Counting tokens.....")
+    input_length, output_length, input_tokens, output_tokens= calc(pairs)
+    print(input_lang.name, input_tokens)
+    print(output_lang.name, output_tokens)
+
+    print("Average sentence length...")
+    print(input_lang.name, input_length)
+    print(output_lang.name, output_length)
 
     return input_lang, output_lang, pairs
+
+def calc(pairs):
+	i_total_words = 0
+	o_total_words = 0
+	total_sentences = len(pairs)
+
+	for (i,o) in pairs:
+		i_total_words+= len(i.split(" "))
+		o_total_words+=len(o.split(" "))
+	
+	return i_total_words/total_sentences, o_total_words/total_sentences, i_total_words, o_total_words

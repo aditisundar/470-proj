@@ -22,7 +22,7 @@ def define_simple_decoder(hidden_size, input_vocab_len, output_vocab_len, max_le
     decoder = None
 
     # Write your implementation here
-
+    decoder = model.DecoderRNN(hidden_size, output_vocab_len)
     # End of implementation
 
     return decoder
@@ -47,7 +47,7 @@ def run_simple_decoder(simple_decoder, decoder_input, encoder_hidden, decoder_hi
     results = None
 
     # Write your implementation here
-
+    results = simple_decoder.forward(decoder_input, decoder_hidden)
     # End of implementation
 
     return results
@@ -176,15 +176,37 @@ class AttnDecoderRNNDot(nn.Module):
         super(AttnDecoderRNNDot, self).__init__()
 
         # Write your implementation here
-
+        print("-------- Using AttnDecoderRNNDot --------")
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.dropout_p = dropout_p
+        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
+        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
+        self.dropout = nn.Dropout(self.dropout_p)
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
+        self.out = nn.Linear(self.hidden_size, self.output_size)
         # End of implementation
 
     def forward(self, input, hidden, encoder_outputs):
 
         # Write your implementation here
+        embedded = self.embedding(input).view(1, 1, -1)
+        embedded = self.dropout(embedded)
 
-        pass
+        # changed from AttnDecoderRNN: uses dot attention instead
+        attn_weights = F.softmax(torch.matmul(hidden[0], torch.t(encoder_outputs)), dim=1)
 
+        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
+                                 encoder_outputs.unsqueeze(0))
+
+        output = torch.cat((embedded[0], attn_applied[0]), 1)
+        output = self.attn_combine(output).unsqueeze(0)
+
+        output = F.relu(output)
+        output, hidden = self.gru(output, hidden)
+
+        output = F.log_softmax(self.out(output[0]), dim=1)
+        return output, hidden, attn_weights
         # End of implementation
 
     def initHidden(self):
