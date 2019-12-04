@@ -39,8 +39,11 @@ parser.add_argument('--bidirectional', default=False, action='store_true',
                     help='Run the bidirectional encoder')
 parser.add_argument('--dot', default=False, action='store_true',
                     help='Run the Attention decoder with dot type')
+# Models for part 3
 parser.add_argument('--char', default=False, action='store_true',
                     help='Run the character based model')
+parser.add_argument('--num_layers', default=2, action='store_true',
+                    help='Run the multi-layer AttentionDot model')
 
 
 def main():
@@ -98,10 +101,10 @@ def main():
 
         if args.char:
             model = EncoderDecoder(args.hidden_size, input_lang.n_chars, output_lang.n_chars, args.drop,
-                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot)
+                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot, 1)
         else:
             model = EncoderDecoder(args.hidden_size, input_lang.n_words, output_lang.n_words, args.drop,
-                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot)
+                                   args.tfr, args.max_length, args.lr, args.simple, args.bidirectional, args.dot, args.num_layers)
 
         model.trainIters(pairs, input_lang, output_lang, args.n_iters,
                          print_every=args.print_every, plot_every=args.plot_every, char=args.char)

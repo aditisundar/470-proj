@@ -16,7 +16,7 @@ class EncoderDecoder(object):
 	"""EncoderDecoder"""
 	def __init__(self, hidden_size=128, input_vocab_len=10000, output_vocab_len=10000, dropout_p=0.1,
 				 teacher_forcing_ratio=0.5, max_length=10, learning_rate=0.01, simple=False,
-				 bidirectional=False, dot=False):
+				 bidirectional=False, dot=False, num_layers=1):
 		super(EncoderDecoder, self).__init__()
 		self.hidden_size = hidden_size
 		self.input_vocab_len = input_vocab_len
@@ -26,11 +26,15 @@ class EncoderDecoder(object):
 		self.learning_rate = learning_rate
 		self.simple = simple
 		self.dot = dot
+		self.multi = multi
 		self.bidirectional = bidirectional
 		self.teacher_forcing_ratio = teacher_forcing_ratio
 
 		if self.bidirectional:
-			self.encoder = code.define_bi_encoder(input_vocab_len, hidden_size).to(device)
+			if self.num_layers > 1:
+				self.encoder = code.MultiLayerBiDirectionalEncoder(input_vocab_len, hidden_size, num_layers=num_layers).to(device)
+			else:
+				self.encoder = code.define_bi_encoder(input_vocab_len, hidden_size).to(device)
 
 		else:
 			self.encoder = EncoderRNN(input_vocab_len, hidden_size).to(device)
@@ -38,10 +42,14 @@ class EncoderDecoder(object):
 		if self.simple:
 			self.decoder = code.define_simple_decoder(hidden_size, input_vocab_len, output_vocab_len, max_length).to(device)
 		else:
-			if not self.dot:
-				self.decoder = AttnDecoderRNN(hidden_size, output_vocab_len, dropout_p=dropout_p, max_length=self.max_length).to(device)
+			if self.num_layers > 1:
+				self.decoder = code.MultiLayerAttnDotDecoder(hidden_size, output_vocab_len, 
+					dropout_p=dropout_p, max_length=max_length, num_layers=num_layers)
 			else:
-				self.decoder = code.AttnDecoderRNNDot(hidden_size, output_vocab_len, dropout_p=dropout_p, max_length=max_length)
+				if not self.dot:
+					self.decoder = AttnDecoderRNN(hidden_size, output_vocab_len, dropout_p=dropout_p, max_length=self.max_length).to(device)
+				else:
+					self.decoder = code.AttnDecoderRNNDot(hidden_size, output_vocab_len, dropout_p=dropout_p, max_length=max_length)
 
 
 		self.encoder_optimizer = None
