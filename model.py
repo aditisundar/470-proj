@@ -9,6 +9,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ######################################################################
 # The Encoder
 # -----------
+
+
 class EncoderRNN(nn.Module):
     def __init__(self, input_size, hidden_size):
         super(EncoderRNN, self).__init__()
@@ -18,7 +20,13 @@ class EncoderRNN(nn.Module):
         self.gru = nn.GRU(hidden_size, hidden_size)
 
     def forward(self, input, hidden):
-        embedded = self.embedding(input).view(1, 1, -1)
+        # print(self.embedding(input))
+        try:
+            embedded = self.embedding(input).view(1, 1, -1)
+        except RuntimeError:
+            print(self.embedding)
+            print(input)
+            raise
         output = embedded
         output, hidden = self.gru(output, hidden)
         return output, hidden

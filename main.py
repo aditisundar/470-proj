@@ -49,11 +49,12 @@ parser.add_argument('--dot', default=False, action='store_true',
 """
 Models for part 3
 
-To run character based model:
 To run multi-layer optimal model:       python3 main.py --multi --num-layers=<n>
 """
 parser.add_argument('--char', default=False, action='store_true',
-                    help='Run the character based model')
+                    help='Run the character-based model')
+parser.add_argument('--char-bleu', default=False, action='store_true',
+                    help='Use a character-based BLEU metric')
 parser.add_argument('--multi', default=False, action='store_true',
                     help='Run the Multi-layered Bidirectional Encoder with DotAttention Decoder')
 parser.add_argument('--num-layers', type=int, default=8,
@@ -84,34 +85,28 @@ def main():
         hypothesis = []
 
         for (hyp, ref) in outputs:
-            if args.char:
+            if args.char or args.char_bleu:
                 reference.append([list(ref)])
                 hypothesis.append(list(hyp))
             else:
                 reference.append([ref.split(" ")])
                 hypothesis.append(hyp.split(" "))
 
-        print("ref:")
-        print(reference)
-        print("hyp:")
-        print(hypothesis)
         bleu_score = compute_bleu(reference, hypothesis)
         print("Bleu Score: " + str(bleu_score))
 
         print(model.evaluateAndShowAttention(
-            "L'anglais n'est pas facile pour nous."))
+            "L'anglais n'est pas facile pour nous.", char=args.char))
         print(model.evaluateAndShowAttention(
-            "J'ai dit que l'anglais est facile."))
+            "J'ai dit que l'anglais est facile.", char=args.char))
         print(model.evaluateAndShowAttention(
-            "Je n'ai pas dit que l'anglais est une langue facile."))
+            "Je n'ai pas dit que l'anglais est une langue facile.", char=args.char))
         print(model.evaluateAndShowAttention(
-            "Je fais un blocage sur l'anglais."))
+            "Je fais un blocage sur l'anglais.", char=args.char))
 
     else:
         input_lang, output_lang, pairs = prepareData(args.train_file)
         print(random.choice(pairs))
-
-        print(input_lang.n_words)
 
         if args.char:
             model = EncoderDecoder(args.hidden_size, input_lang.n_chars, output_lang.n_chars, args.drop,
