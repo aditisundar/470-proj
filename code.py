@@ -144,7 +144,7 @@ class AttnDecoderRNNDot(nn.Module):
 
 class MultiLayerBidirectionalEncoderRNN(nn.Module):
 
-    def __init__(self, input_size, hidden_size, num_layers=5):
+    def __init__(self, input_size, hidden_size, num_layers=8):
         super(MultiLayerBidirectionalEncoderRNN, self).__init__()
 
         self.hidden_size = hidden_size
@@ -165,7 +165,7 @@ class MultiLayerBidirectionalEncoderRNN(nn.Module):
 
 class MultiLayerAttnDecoderRNNDot(nn.Module):
 
-    def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=10, num_layers=5):
+    def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=10, num_layers=8):
         super(MultiLayerAttnDecoderRNNDot, self).__init__()
 
         # Write your implementation here
@@ -218,7 +218,7 @@ def fix_multi_bi_encoder_output_dim(encoder_output, hidden_size):
 def fix_multi_bi_encoder_hidden_dim(encoder_hidden):
     # dimension of encoder_hidden is (2 * num_layers, 1, hidden_size)
     # want dimension (num_layers, 1, hidden_size)
-    # contiguous() is used to ensure that the memory the object occupies is contiguous (PyTorch needs this condition)
+    # contiguous() is used to ensure that the tensor occupies a single block of memory (PyTorch needs this condition)
     output = encoder_hidden[::2].contiguous()
 
     return output

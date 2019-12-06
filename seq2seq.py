@@ -18,6 +18,7 @@ class EncoderDecoder(object):
 				 teacher_forcing_ratio=0.5, max_length=10, learning_rate=0.01, simple=False,
 				 bidirectional=False, dot=False, multi=False, num_layers=1):
 		super(EncoderDecoder, self).__init__()
+		
 		self.hidden_size = hidden_size
 		self.input_vocab_len = input_vocab_len
 		self.output_vocab_len = output_vocab_len
@@ -199,12 +200,17 @@ class EncoderDecoder(object):
 														 encoder_hidden)
 				if self.bidirectional:
 					encoder_output = code.fix_bi_encoder_output_dim(encoder_output, self.hidden_size)
+				if self.multi:
+					encoder_output = code.fix_multi_bi_encoder_output_dim(encoder_output, self.hidden_size)
+
 				encoder_outputs[ei] += encoder_output[0, 0]
 
 			decoder_input = torch.tensor([[SOS_token]], device=device)  # SOS
 
 			if self.bidirectional:
 				decoder_hidden = code.fix_bi_encoder_hidden_dim(encoder_hidden)
+			elif self.multi:
+				decoder_hidden = code.fix_multi_bi_encoder_hidden_dim(encoder_hidden)
 			else:
 				decoder_hidden = encoder_hidden
 
@@ -246,7 +252,9 @@ class EncoderDecoder(object):
 
 		model = EncoderDecoder(params['hidden_size'], params['input_vocab_len'], params['output_vocab_len'], 
 			dropout_p= params['dropout_p'], teacher_forcing_ratio= params['teacher_forcing_ratio'], 
-			max_length=params['max_length'], learning_rate= params['learning_rate'], simple= params['simple'], bidirectional= params['bidirectional'], dot=False)
+			max_length=params['max_length'], learning_rate= params['learning_rate'], 
+			simple= params['simple'], bidirectional= params['bidirectional'], dot=params['dot'], multi=params['multi'], 
+			num_layers=params['num_layers'])
 
 		model.input_lang = params['input_lang']
 		model.output_lang = params['output_lang']
@@ -281,7 +289,9 @@ class EncoderDecoder(object):
 				'output_vocab_len': self.output_vocab_len,
 				'simple': self.simple,
 				'bidirectional': self.bidirectional,
-				'dot': self.dot
+				'dot': self.dot,
+				'multi': self.multi,
+				'num_layers': self.num_layers
 			}, f)
 
 	def evaluatePairs(self, pairs, rand=True, n=10, plot=False, char=False):

@@ -56,9 +56,9 @@ parser.add_argument('--char', default=False, action='store_true',
                     help='Run the character based model')
 parser.add_argument('--multi', default=False, action='store_true',
                     help='Run the Multi-layered Bidirectional Encoder with DotAttention Decoder')
-parser.add_argument('--num-layers', type=int, default=5,
+parser.add_argument('--num-layers', type=int, default=8,
                     help='Number of layers in multi-layer model')
-
+# note: Google NMT used 8 layers
 
 def main():
 
@@ -122,8 +122,8 @@ def main():
 
         model.trainIters(pairs, input_lang, output_lang, args.n_iters,
                          print_every=args.print_every, plot_every=args.plot_every, char=args.char)
-        model.evaluatePairs(pairs, char=args.char)
         model.save(args.output_dir)
+        model.evaluatePairs(pairs, char=args.char)
 
 
 if __name__ == '__main__':
