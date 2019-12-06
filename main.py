@@ -79,6 +79,7 @@ def main():
             exit()
 
         test_pairs = readFile(args.test_file)
+
         outputs = model.evaluatePairs(test_pairs,  rand=False, char=args.char)
         writeToFile(outputs, os.path.join(args.output_dir, "output.pkl"))
         reference = []
@@ -106,6 +107,7 @@ def main():
 
     else:
         input_lang, output_lang, pairs = prepareData(args.train_file)
+
         print(random.choice(pairs))
 
         if args.char:

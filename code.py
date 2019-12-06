@@ -65,6 +65,8 @@ class BidirectionalEncoderRNN(nn.Module):
 
 # PART 2.2
 # Define the encoder model here
+
+
 def define_bi_encoder(input_vocab_len, hidden_size):
     # Write your implementation here
     encoder = BidirectionalEncoderRNN(input_vocab_len, hidden_size)
@@ -88,7 +90,8 @@ def fix_bi_encoder_output_dim(encoder_output, hidden_size):
 # Correct the dimension of encoder hidden by considering only one sided layer
 def fix_bi_encoder_hidden_dim(encoder_hidden):
     # Write your implementation here
-    output = encoder_hidden[:-1]
+    #output = encoder_hidden[:-1]
+    output = encoder_hidden[-1:]  # option 2:
     # End of implementation
 
     return output
@@ -119,7 +122,8 @@ class AttnDecoderRNNDot(nn.Module):
         embedded = self.dropout(embedded)
 
         # changed from AttnDecoderRNN: uses dot attention instead
-        attn_weights = F.softmax(torch.matmul(hidden[0], torch.t(encoder_outputs)), dim=1)
+        attn_weights = F.softmax(torch.matmul(
+            hidden[0], torch.t(encoder_outputs)), dim=1)
 
         attn_applied = torch.bmm(attn_weights.unsqueeze(0),
                                  encoder_outputs.unsqueeze(0))
@@ -152,7 +156,8 @@ class MultiLayerBidirectionalEncoderRNN(nn.Module):
         self.num_layers = num_layers
 
         self.embedding = nn.Embedding(input_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size, bidirectional=True, num_layers=num_layers)
+        self.gru = nn.GRU(hidden_size, hidden_size,
+                          bidirectional=True, num_layers=num_layers)
 
     def forward(self, input, hidden):
         embedded = self.embedding(input).view(1, 1, -1)
@@ -162,6 +167,7 @@ class MultiLayerBidirectionalEncoderRNN(nn.Module):
     def initHidden(self):
         # 1*2*num_layers because bidirectional multi-layered
         return torch.zeros(1*2*self.num_layers, 1, self.hidden_size, device=device)
+
 
 class MultiLayerAttnDecoderRNNDot(nn.Module):
 
@@ -177,7 +183,8 @@ class MultiLayerAttnDecoderRNNDot(nn.Module):
         self.embedding = nn.Embedding(self.output_size, self.hidden_size)
         self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size, num_layers=num_layers)
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size,
+                          num_layers=num_layers)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, input, hidden, encoder_outputs):
@@ -185,7 +192,8 @@ class MultiLayerAttnDecoderRNNDot(nn.Module):
         embedded = self.embedding(input).view(1, 1, -1)
         embedded = self.dropout(embedded)
 
-        attn_weights = F.softmax(torch.matmul(hidden[0], torch.t(encoder_outputs)), dim=1)
+        attn_weights = F.softmax(torch.matmul(
+            hidden[0], torch.t(encoder_outputs)), dim=1)
         attn_applied = torch.bmm(attn_weights.unsqueeze(0),
                                  encoder_outputs.unsqueeze(0))
         output = torch.cat((embedded[0], attn_applied[0]), 1)
@@ -201,6 +209,8 @@ class MultiLayerAttnDecoderRNNDot(nn.Module):
         return torch.zeros(1*self.num_layers, 1, self.hidden_size, device=device)
 
 # Define the encoder model here
+
+
 def define_multi_bi_encoder(input_vocab_len, hidden_size):
     encoder = MultiLayerBidirectionalEncoderRNN(input_vocab_len, hidden_size)
     return encoder
@@ -215,6 +225,8 @@ def fix_multi_bi_encoder_output_dim(encoder_output, hidden_size):
 
 # Correct the dimension of encoder hidden by considering only one sided layer
 # TODO: not sure if this is correct - why are we only considering one-sided
+
+
 def fix_multi_bi_encoder_hidden_dim(encoder_hidden):
     # dimension of encoder_hidden is (2 * num_layers, 1, hidden_size)
     # want dimension (num_layers, 1, hidden_size)
@@ -222,4 +234,3 @@ def fix_multi_bi_encoder_hidden_dim(encoder_hidden):
     output = encoder_hidden[::2].contiguous()
 
     return output
-
